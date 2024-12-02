@@ -19,4 +19,4 @@ The **Analogue Editor** is a node-based graph editor to describe `.ana` parsing 
 
 ## Features
 
-See [TODO.md](Todo.md) until some features are stabilized.
+See [TODO.md](TODO.md) until some features are stabilized.
