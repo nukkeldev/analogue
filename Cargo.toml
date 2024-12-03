@@ -1,7 +1,3 @@
-[package]
-name = "analogue"
-version = "0.1.0"
-edition = "2021"
-authors = ["nukkeldev"]
-
-[dependencies]
+[workspace]
+resolver = "2"
+members = ["analogue", "editor"]
