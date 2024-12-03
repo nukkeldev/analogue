@@ -3,3 +3,5 @@
 *.rs       text diff=rust
 *.toml     text diff=toml
 Cargo.lock text
+
+*.ana      binary
