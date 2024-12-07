@@ -6,3 +6,5 @@ authors = ["nukkeldev"]
 
 [dependencies]
 analogue = { path = "../analogue" }
+crossterm = "0.28.1"
+ratatui = "0.29.0"
