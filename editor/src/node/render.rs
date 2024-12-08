@@ -1,6 +1,5 @@
 use ratatui::{prelude::*, widgets::Block};
 use symbols::{border, line};
-use tracing::{debug, trace};
 
 use super::*;
 
@@ -21,13 +20,10 @@ impl<'a> Widget for &mut NodeRenderer<'a, &'a Node<'a>> {
     ///
     /// Tests:
     /// - [rendering_tests::test_render_builtin_node]
-    #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
     {
-        debug!("Started rendering node");
-
         // Ensure the node can be drawn
         let minimum_size = self.get_minimum_size();
         assert!(
@@ -36,16 +32,11 @@ impl<'a> Widget for &mut NodeRenderer<'a, &'a Node<'a>> {
             area.as_size()
         );
 
-        trace!("Rendering borders");
         self.render_borders(area, buf);
-        trace!("Rendering ports");
         self.render_ports(area, buf);
 
-        trace!("Rendering name");
         let inner_area = area.inner(Margin::new(2, 1));
         self.render_name(inner_area, buf);
-
-        debug!("Rendered node")
     }
 }
 
@@ -98,7 +89,6 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
     /// Gets the minimum size necessary to render this node.
     ///
     /// Test: [rendering_tests::test_get_minimum_width]
-    #[cfg_attr(test, tracing::instrument(skip_all))]
     pub fn get_minimum_size(&mut self) -> Size {
         use PortRenderingStrategy::*;
 
@@ -106,34 +96,25 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
         let show_type_hints = self.display_options.show_type_hints;
 
         if let Some(ref cache) = self.cache {
-            debug!(cached_minimum_size = %cache.minimum_size);
             return cache.minimum_size;
         }
-
-        debug!(
-            ?show_type_hints,
-            "Started calculating minimum size for node"
-        );
-        trace!(
-            has_primary_input = pc.get_primary_input().is_some(),
-            has_primary_output = pc.get_primary_output().is_some(),
-            input_count = pc.get_input_port_count(),
-            output_count = pc.get_output_port_count()
-        );
-        trace!(port_render_strategy = ?pc.get_rendering_strategy());
 
         let mut width = 2 + 2;
         if show_type_hints && !pc.is_empty() {
             let max_slot_width = match pc.get_rendering_strategy() {
                 Inline => {
-                    // Get the longer of the two primaries, or 0
-                    let max_primaries_len = get_max_compact_string_len(
-                        pc.get_primary_input().map(Port::get_type_name).as_ref(),
-                        pc.get_primary_output().map(Port::get_type_name).as_ref(),
-                    );
-
-                    // Use the longer primary length and pad the formatted name with it
-                    let mut max_len = max_primaries_len * 2 + self.get_formatted_node_name().len();
+                    let mut max_len = match (pc.get_primary_input(), pc.get_primary_output()) {
+                        (Some(input), Some(output)) => {
+                            let max_primaries_len = input
+                                .get_type_name()
+                                .len()
+                                .max(output.get_type_name().len());
+                            max_primaries_len * 2
+                        }
+                        (Some(input), None) => input.get_type_name().len(),
+                        (None, Some(output)) => output.get_type_name().len(),
+                        (None, None) => 0,
+                    } + self.get_formatted_node_name().len();
 
                     let inputs = pc.get_input_ports();
                     let outputs = pc.get_output_ports();
@@ -155,7 +136,6 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
                 InputsFirst => todo!(),
                 OutputsFirst => todo!(),
             };
-            trace!(max_slot_width);
 
             width += max_slot_width;
         } else {
@@ -174,11 +154,8 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
         }
 
         let size = Size::new(width, height);
-        debug!(minimum_size = %size);
-
         if self.cache.is_none() {
             self.cache = Some(RenderingCache { minimum_size: size });
-            debug!("Cached minimum size")
         }
 
         size
@@ -189,7 +166,6 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
     /// Renders all the borders for the node. `area` should be an inner area that left padding for the port cells on either side.
     ///
     /// Test: [rendering_tests::test_render_borders]
-    #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render_borders(&self, area: Rect, buf: &mut Buffer) {
         let Node {
             ty,
@@ -222,7 +198,6 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
     }
 
     /// Test: [rendering_tests::test_render_ports]
-    #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render_ports(&self, area: Rect, buf: &mut Buffer) {
         let NodeRenderer {
             node_ref:
@@ -234,13 +209,6 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
             display_options,
             ..
         } = self;
-
-        trace!(
-            has_primary_input = pc.get_primary_input().is_some(),
-            has_primary_output = pc.get_primary_output().is_some(),
-            input_count = pc.get_input_port_count(),
-            output_count = pc.get_output_port_count()
-        );
 
         let line_set = match ty {
             NodeType::StructInitializtion(_) => line::DOUBLE,
@@ -316,11 +284,20 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
     }
 
     /// Test: [rendering_tests::test_render_name]
-    #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render_name(&self, area: Rect, buf: &mut Buffer) {
-        Line::from(self.get_formatted_node_name())
-            .centered()
-            .render(area, buf);
+        let line = Line::from(self.get_formatted_node_name());
+
+        let pc = &self.node_ref.port_configuration;
+
+        match (
+            pc.get_primary_input().is_some(),
+            pc.get_primary_output().is_some(),
+        ) {
+            (true, true) | (false, false) => line.centered(),
+            (true, false) => line.right_aligned(),
+            (false, true) => line.left_aligned(),
+        }
+        .render(area, buf);
     }
 }
 
@@ -355,7 +332,7 @@ mod rendering_tests {
     use render::NodeRenderer;
     use types::Type;
 
-    use crate::util::{test::initialize, tui::BufferExt};
+    use crate::util::tui::BufferExt;
 
     use super::*;
 
@@ -364,8 +341,6 @@ mod rendering_tests {
 
     #[test]
     pub(super) fn test_render_builtin_node() {
-        initialize();
-
         let mut node = test_node();
         node.port_configuration
             .set_primary_output(Port::primary(&TYPE_U8_VARRAY));
@@ -384,8 +359,6 @@ mod rendering_tests {
 
     #[test]
     pub(super) fn test_get_minimum_width() {
-        initialize();
-
         let test_cases = [
             (("_", PortConfiguration::default()), 7),
             (
@@ -420,8 +393,6 @@ mod rendering_tests {
 
     #[test]
     pub(super) fn test_render_borders() {
-        initialize();
-
         let mut node = test_node();
         let base_renderer = NodeRenderer::new(&DisplayOptions {
             show_type_hints: true,
@@ -463,8 +434,6 @@ mod rendering_tests {
 
     #[test]
     pub(super) fn test_render_ports() {
-        initialize();
-
         let mut node = test_node();
         let base_renderer = NodeRenderer::new(&DisplayOptions {
             show_type_hints: true,
@@ -478,14 +447,14 @@ mod rendering_tests {
                 "           ",
             ]),
             (PortConfiguration::new(Some(Port::primary(&TYPE_U8)), None, vec![], vec![]), vec![
-                "               ",
-                "◈┫u8           ",
-                "               ",
+                "             ",
+                "◈┫u8         ",
+                "             ",
             ]),
             (PortConfiguration::new(None, Some(Port::primary(&TYPE_U8)), vec![], vec![]), vec![
-                "               ",
-                "           u8┣◈",
-                "               ",
+                "             ",
+                "         u8┣◈",
+                "             ",
             ]),
             (PortConfiguration::new(Some(Port::primary(&TYPE_U8)), Some(Port::primary(&TYPE_U8)), vec![], vec![]), vec![
                 "               ",
@@ -510,8 +479,6 @@ mod rendering_tests {
 
     #[test]
     pub(super) fn test_render_name() {
-        initialize();
-
         let mut node = test_node();
         let base_renderer = NodeRenderer::new(&DisplayOptions {
             show_type_hints: true,
