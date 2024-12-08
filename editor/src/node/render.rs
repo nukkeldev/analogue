@@ -17,6 +17,10 @@ pub struct NodeRenderer<'a, NodeRefOrNone> {
 }
 
 impl<'a> Widget for &mut NodeRenderer<'a, &'a Node<'a>> {
+    /// Renders a [Node] with the given display options.
+    ///
+    /// Tests:
+    /// - [rendering_tests::test_render_builtin_node]
     #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render(self, area: Rect, buf: &mut Buffer)
     where
@@ -92,6 +96,8 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
     }
 
     /// Gets the minimum size necessary to render this node.
+    ///
+    /// Test: [rendering_tests::test_get_minimum_width]
     #[cfg_attr(test, tracing::instrument(skip_all))]
     pub fn get_minimum_size(&mut self) -> Size {
         use PortRenderingStrategy::*;
@@ -181,6 +187,8 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
     // Rendering
 
     /// Renders all the borders for the node. `area` should be an inner area that left padding for the port cells on either side.
+    ///
+    /// Test: [rendering_tests::test_render_borders]
     #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render_borders(&self, area: Rect, buf: &mut Buffer) {
         let Node {
@@ -213,6 +221,7 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
         }
     }
 
+    /// Test: [rendering_tests::test_render_ports]
     #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render_ports(&self, area: Rect, buf: &mut Buffer) {
         let NodeRenderer {
@@ -306,6 +315,7 @@ impl<'a> NodeRenderer<'a, &'a Node<'a>> {
         }
     }
 
+    /// Test: [rendering_tests::test_render_name]
     #[cfg_attr(test, tracing::instrument(skip_all))]
     fn render_name(&self, area: Rect, buf: &mut Buffer) {
         Line::from(self.get_formatted_node_name())
@@ -325,6 +335,8 @@ struct RenderingCache {
 
 /// Returns the maximum length in bytes of the two optionally supplied strings. If both strings
 /// are none, `0` is returned.
+///
+/// Test: [util_tests::test_get_max_compact_string_len]
 fn get_max_compact_string_len(
     left: Option<&CompactString>,
     right: Option<&CompactString>,
@@ -351,7 +363,7 @@ mod rendering_tests {
     const TYPE_U8_VARRAY: Type = Type::VArray(&TYPE_U8);
 
     #[test]
-    fn test_render_builtin_node() {
+    pub(super) fn test_render_builtin_node() {
         initialize();
 
         let mut node = test_node();
@@ -371,7 +383,7 @@ mod rendering_tests {
     }
 
     #[test]
-    fn test_get_minimum_width() {
+    pub(super) fn test_get_minimum_width() {
         initialize();
 
         let test_cases = [
@@ -407,7 +419,7 @@ mod rendering_tests {
     }
 
     #[test]
-    fn test_render_borders() {
+    pub(super) fn test_render_borders() {
         initialize();
 
         let mut node = test_node();
@@ -450,7 +462,7 @@ mod rendering_tests {
     }
 
     #[test]
-    fn test_render_ports() {
+    pub(super) fn test_render_ports() {
         initialize();
 
         let mut node = test_node();
@@ -497,7 +509,7 @@ mod rendering_tests {
     }
 
     #[test]
-    fn test_render_name() {
+    pub(super) fn test_render_name() {
         initialize();
 
         let mut node = test_node();
@@ -537,7 +549,7 @@ mod util_tests {
     use crate::node::render::get_max_compact_string_len;
 
     #[test]
-    fn test_get_max_compact_string_len() {
+    pub(super) fn test_get_max_compact_string_len() {
         const A: CompactString = CompactString::const_new("Hi!");
         const B: CompactString = CompactString::const_new("Goodbye.");
 
