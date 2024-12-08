@@ -29,6 +29,34 @@ pub struct DefinedType<'a> {
 }
 
 impl<'a> DefinedType<'a> {
+    // Constructors
+
+    pub fn new<S: Into<CompactString>>(name: S) -> Self {
+        Self {
+            name: name.into(),
+            fields: vec![],
+        }
+    }
+
+    // Builder Methods
+
+    #[must_use]
+    pub fn add_field<S: Into<CompactString>>(mut self, name: S, ty: &'a Type<'a>) -> Self {
+        self.fields.push((name.into(), ty));
+        self
+    }
+
+    #[must_use]
+    pub fn add_fields<S: Into<CompactString>>(
+        mut self,
+        fields: Vec<(CompactString, &'a Type<'a>)>,
+    ) -> Self {
+        self.fields.extend(fields);
+        self
+    }
+
+    // Getters
+
     pub fn get_name(&self) -> &str {
         self.name.as_str()
     }

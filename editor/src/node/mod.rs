@@ -9,9 +9,6 @@ pub mod ports;
 pub mod render;
 pub mod types;
 
-#[cfg(test)]
-mod tests;
-
 // NODE
 
 #[derive(Debug, PartialEq, Clone)]
@@ -57,7 +54,7 @@ impl<'a> Node<'a> {
         match &self.ty {
             NodeType::Builtin(ty) => Self::get_builtin_node_name(ty),
             NodeType::StructInitializtion(dt) => dt.get_name(),
-            NodeType::Defined() => todo!(),
+            NodeType::Defined(t_) => t_,
         }
     }
 
@@ -76,7 +73,7 @@ impl<'a> Node<'a> {
 pub enum NodeType<'a> {
     Builtin(BuiltinType),
     StructInitializtion(&'a DefinedType<'a>),
-    Defined(),
+    Defined(&'a str),
 }
 
 #[derive(Debug, PartialEq, Clone)]

@@ -36,6 +36,10 @@ impl<'a> Port<'a> {
 /// The configuration of ports (and how they're rendered) for a node.
 #[derive(Debug, Clone, PartialEq)]
 pub struct PortConfiguration<'a> {
+    /// The primary input of the node; inline with the node's name.
+    primary_input: Option<Port<'a>>,
+    /// The primary output of the node; inline with the node's name.
+    primary_output: Option<Port<'a>>,
     /// The input ports of the node.
     inputs: Vec<Port<'a>>,
     /// The output ports of the node.
@@ -48,8 +52,15 @@ impl<'a> PortConfiguration<'a> {
     // Constructors
 
     /// Creates a new port configuration with the given inputs and outputs.
-    pub const fn new(inputs: Vec<Port<'a>>, outputs: Vec<Port<'a>>) -> Self {
+    pub const fn new(
+        primary_input: Option<Port<'a>>,
+        primary_output: Option<Port<'a>>,
+        inputs: Vec<Port<'a>>,
+        outputs: Vec<Port<'a>>,
+    ) -> Self {
         Self {
+            primary_input,
+            primary_output,
             inputs,
             outputs,
             rendering_strategy: PortRenderingStrategy::Inline,
@@ -74,63 +85,87 @@ impl<'a> PortConfiguration<'a> {
 
     /// Returns `true` if there are no input or output ports.
     pub fn is_empty(&self) -> bool {
-        self.inputs.is_empty() && self.outputs.is_empty()
+        self.primary_input.is_none()
+            && self.primary_output.is_none()
+            && self.inputs.is_empty()
+            && self.outputs.is_empty()
     }
 
-    /// Returns `true` if there are at most one input and one output port.
+    /// Returns `true` if there are no non-primary ports.
     pub fn is_only_primaries(&self) -> bool {
-        !self.is_empty() && self.inputs.len() <= 1 && self.outputs.len() <= 1
+        (self.primary_input.is_some() || self.primary_output.is_some())
+            && self.inputs.is_empty()
+            && self.outputs.is_empty()
     }
 
-    /// Returns `true` if there are at least two input or output ports.
+    /// Returns `true` if there are non-primary ports.
     pub fn is_not_only_primaries(&self) -> bool {
-        self.inputs.len() > 1 || self.outputs.len() > 1
+        !self.inputs.is_empty() || !self.outputs.is_empty()
     }
 
     // Getters
 
-    pub fn get_input_port_count(&self) -> u16 {
-        self.inputs.len() as u16
+    /// Gets the number of input ports, excluding the primary port (if present).
+    pub fn get_input_port_count(&self) -> usize {
+        self.inputs.len()
     }
 
-    pub fn get_output_port_count(&self) -> u16 {
-        self.outputs.len() as u16
+    /// Gets the number of output ports, excluding the primary port (if present).\
+    pub fn get_output_port_count(&self) -> usize {
+        self.outputs.len()
     }
 
+    /// Gets the rendering strategy.
     pub fn get_rendering_strategy(&self) -> &PortRenderingStrategy {
         &self.rendering_strategy
     }
 
+    /// Gets a reference to the primary input port (if present).
+    pub fn get_primary_input(&self) -> Option<&Port<'a>> {
+        self.primary_input.as_ref()
+    }
+
+    /// Gets a reference to the primary output port (if present).
+    pub fn get_primary_output(&self) -> Option<&Port<'a>> {
+        self.primary_output.as_ref()
+    }
+
+    /// Gets a reference to the input ports.
     pub fn get_input_ports(&self) -> &Vec<Port<'a>> {
         &self.inputs
     }
 
+    /// Gets a reference to the output ports.
     pub fn get_output_ports(&self) -> &Vec<Port<'a>> {
         &self.outputs
     }
 
     // Setters
 
-    pub fn add_input_port(&mut self, port: Port<'a>) {
-        self.inputs.push(port);
+    /// Sets the primary input to `port`.
+    pub fn set_primary_input(&mut self, port: Port<'a>) {
+        self.primary_input = Some(port);
     }
 
-    pub fn add_output_port(&mut self, port: Port<'a>) {
-        self.outputs.push(port);
+    /// Sets the primary output to `port`.
+    pub fn set_primary_output(&mut self, port: Port<'a>) {
+        self.primary_output = Some(port);
+    }
+
+    /// Removes the primary input.
+    pub fn remove_primary_input(&mut self) {
+        self.primary_input = None;
+    }
+
+    /// Removes the primary output.
+    pub fn remove_primary_output(&mut self) {
+        self.primary_output = None;
     }
 
     // Util
 
     /// Gets the row relative to the top border of a node that the port on the specified side and slot is on.
     pub fn get_cell_row_for_slot(&self, slot: u16, is_output: bool) -> u16 {
-        // The 'primary' slot will be inline with the name
-        if slot == 0 {
-            return 1;
-        }
-
-        // Disregard the primary slot as it doesn't follow the strategy
-        let slot = slot - 1;
-
         use PortRenderingStrategy::*;
         // Bypass the top border, name, and seperator then add depending on the strategy
         crate::node::render::MINIMUM_NODE_HEIGHT
