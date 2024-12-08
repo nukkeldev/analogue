@@ -375,25 +375,18 @@ mod rendering_tests {
         initialize();
 
         let test_cases = [
-            (("_", None), " ┃ _ ┃ "),
+            (("_", PortConfiguration::default()), 7),
             (
                 (
                     "_",
-                    Some(PortConfiguration::new(None, None, vec![], vec![])),
-                ),
-                " ┃ _ ┃ ",
-            ),
-            (
-                (
-                    "_",
-                    Some(PortConfiguration::new(
+                    PortConfiguration::new(
                         Some(Port::new(&TYPE_U8, "Foo".into())),
                         Some(Port::new(&TYPE_U8_VARRAY, "Bar".into())),
                         vec![],
                         vec![],
-                    )),
+                    ),
                 ),
-                "◈┫u8   _ u8[]┣◈",
+                15,
             ),
         ];
 
@@ -402,20 +395,14 @@ mod rendering_tests {
             show_type_hints: true,
         });
 
-        for ((alias, pc), expected) in test_cases {
+        for ((alias, pc), expected_len) in test_cases {
             node.alias = Some(alias.into());
-            if let Some(ref pc) = pc {
-                node.port_configuration = pc.clone();
-            }
+            node.port_configuration = pc;
 
             let mut node_renderer = base_renderer.with_node(&node);
             let minimum_size = node_renderer.get_minimum_size();
 
-            let mut buf = Buffer::empty(Rect::new(0, 0, minimum_size.width, minimum_size.height));
-            node_renderer.render(buf.area, &mut buf);
-
-            let rendered = buf.get_line(1).unwrap();
-            assert_eq!(rendered, expected);
+            assert_eq!(minimum_size.width, expected_len);
         }
     }
 

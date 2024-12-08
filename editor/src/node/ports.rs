@@ -34,7 +34,7 @@ impl<'a> Port<'a> {
 // PORT CONFIGURATION
 
 /// The configuration of ports (and how they're rendered) for a node.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Default)]
 pub struct PortConfiguration<'a> {
     /// The primary input of the node; inline with the node's name.
     primary_input: Option<Port<'a>>,
