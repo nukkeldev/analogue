@@ -25,13 +25,13 @@ fn main() -> Result<()> {
 }
 
 #[derive(Debug, Default)]
-struct App {
-    graph: Graph,
+struct App<'a> {
+    graph: Graph<'a>,
 
     exit: bool,
 }
 
-impl App {
+impl<'a> App<'a> {
     pub fn run(&mut self, terminal: &mut DefaultTerminal) -> Result<()> {
         while !self.exit {
             terminal.draw(|f| self.draw(f))?;
@@ -56,7 +56,7 @@ impl App {
     }
 }
 
-impl Widget for &App {
+impl<'a> Widget for &App<'a> {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,
@@ -65,12 +65,12 @@ impl Widget for &App {
 }
 
 #[derive(Debug, Default)]
-struct Graph {
-    nodes: HashMap<usize, Node>,
+struct Graph<'a> {
+    nodes: HashMap<usize, Node<'a>>,
     positions: HashMap<usize, (i32, i32)>,
 }
 
-impl Widget for &Graph {
+impl<'a> Widget for &Graph<'a> {
     fn render(self, area: Rect, buf: &mut Buffer)
     where
         Self: Sized,

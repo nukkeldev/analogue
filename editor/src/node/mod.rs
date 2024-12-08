@@ -1,43 +1,51 @@
 use compact_str::CompactString;
 
-pub(crate) mod render;
+use options::*;
+use ports::*;
+use types::DefinedType;
+
+pub mod options;
+pub mod ports;
+pub mod render;
+pub mod types;
+
 #[cfg(test)]
 mod tests;
 
+// NODE
+
 #[derive(Debug, PartialEq, Clone)]
-pub struct Node {
-    ty: NodeType,
+pub struct Node<'a> {
+    ty: NodeType<'a>,
     alias: Option<CompactString>,
-    port_rendering_strategy: PortRenderingStrategy,
-    input_port_count: u16,
-    output_port_count: u16,
+    port_configuration: PortConfiguration<'a>,
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum NodeType {
-    Builtin(BuiltinType),
-    StructInitializtion(),
-    Defined(),
-}
+impl<'a> Node<'a> {
+    // Constructors
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum BuiltinType {
-    ENTRY,
-    EXIT,
-}
+    pub fn new(ty: NodeType<'a>, port_configuration: PortConfiguration<'a>) -> Self {
+        Self {
+            ty,
+            alias: None,
+            port_configuration,
+        }
+    }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum PortRenderingStrategy {
-    /// Inputs and output slots are inline with each other.
-    Inline,
-    /// Inputs are above the outputs.
-    InputsFirst,
-    /// Outputs are above the inputs.
-    OutputsFirst,
-    // TODO: Other variants, such as Interspersed could be added later
-}
+    pub fn aliased<S: Into<CompactString>>(
+        ty: NodeType<'a>,
+        alias: S,
+        port_configuration: PortConfiguration<'a>,
+    ) -> Self {
+        Self {
+            ty,
+            alias: Some(alias.into()),
+            port_configuration,
+        }
+    }
 
-impl Node {
+    // Getters
+
     pub fn get_node_name_or_alias(&self) -> &str {
         self.alias
             .as_ref()
@@ -48,7 +56,7 @@ impl Node {
     pub fn get_node_name(&self) -> &str {
         match &self.ty {
             NodeType::Builtin(ty) => Self::get_builtin_node_name(ty),
-            NodeType::StructInitializtion() => todo!(),
+            NodeType::StructInitializtion(dt) => dt.get_name(),
             NodeType::Defined() => todo!(),
         }
     }
@@ -57,6 +65,23 @@ impl Node {
         match ty {
             BuiltinType::ENTRY => "ENTRY",
             BuiltinType::EXIT => "EXIT",
+            BuiltinType::COMMENT => "COMMENT",
         }
     }
+}
+
+// NODE TYPES
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum NodeType<'a> {
+    Builtin(BuiltinType),
+    StructInitializtion(&'a DefinedType<'a>),
+    Defined(),
+}
+
+#[derive(Debug, PartialEq, Clone)]
+pub enum BuiltinType {
+    COMMENT,
+    ENTRY,
+    EXIT,
 }
