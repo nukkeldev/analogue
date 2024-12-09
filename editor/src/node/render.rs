@@ -328,7 +328,7 @@ fn get_max_compact_string_len(
 
 #[cfg(test)]
 mod rendering_tests {
-    use ratatui::{buffer::Buffer, layout::Rect, widgets::Widget};
+    use ratatui::{buffer::Buffer, layout::Rect};
     use render::NodeRenderer;
     use types::Type;
 
@@ -341,20 +341,53 @@ mod rendering_tests {
 
     #[test]
     pub(super) fn test_render_builtin_node() {
-        let mut node = test_node();
-        node.port_configuration
-            .set_primary_output(Port::primary(&TYPE_U8_VARRAY));
+        #[rustfmt::skip]
+        let test_cases = [
+            (test_node(), vec![
+                " ┏━━━━━━━┓ ",
+                " ┃ ENTRY ┃ ",
+                " ┗━━━━━━━┛ ",
+            ]),
+            (test_node().with_type(NodeType::Builtin(BuiltinType::COMMENT)), vec![
+                " ┏━━━━━━━━━┓ ",
+                " ┃ COMMENT ┃ ",
+                " ┗━━━━━━━━━┛ ",
+            ]),
+            (test_node().with_alias("___"), vec![
+                " ┏━━━━━┓ ",
+                " ┃ ___ ┃ ",
+                " ┗━━━━━┛ ",
+            ]),
+            (test_node().with_port_configuration(PortConfiguration::new(Some(Port::primary(&TYPE_U8)), None, vec![], vec![])), vec![
+                " ┏━━━━━━━━━┓ ",
+                "◈┫u8 ENTRY ┃ ",
+                " ┗━━━━━━━━━┛ ",
+            ]),
+            (test_node().with_port_configuration(PortConfiguration::new(None, Some(Port::primary(&TYPE_U8)), vec![], vec![])), vec![
+                " ┏━━━━━━━━━┓ ",
+                " ┃ ENTRY u8┣◈",
+                " ┗━━━━━━━━━┛ ",
+            ]),
+            (test_node().with_port_configuration(PortConfiguration::new(Some(Port::primary(&TYPE_U8)), Some(Port::primary(&TYPE_U8)), vec![], vec![])), vec![
+                " ┏━━━━━━━━━━━┓ ",
+                "◈┫u8 ENTRY u8┣◈",
+                " ┗━━━━━━━━━━━┛ ",
+            ]),
+        ];
 
-        let mut renderer = NodeRenderer::new(&DisplayOptions {
+        let base_renderer = NodeRenderer::new(&DisplayOptions {
             show_type_hints: true,
-        })
-        .with_node(&node);
-        let minimum_size = renderer.get_minimum_size();
+        });
 
-        let mut render = Buffer::empty(Rect::new(0, 0, minimum_size.width, minimum_size.height));
-        renderer.render(render.area, &mut render);
+        for (node, expected) in test_cases {
+            let mut node_renderer = base_renderer.with_node(&node);
+            let minimum_size = node_renderer.get_minimum_size();
 
-        println!("{render:?}");
+            let mut buf = Buffer::empty(Rect::new(0, 0, minimum_size.width, minimum_size.height));
+            node_renderer.render(buf.area, &mut buf);
+
+            assert_eq!(buf, Buffer::with_lines(expected));
+        }
     }
 
     #[test]
@@ -428,7 +461,6 @@ mod rendering_tests {
             node_renderer.render_borders(buf.area, &mut buf);
 
             assert_eq!(buf, Buffer::with_lines(expected));
-            buf.reset();
         }
     }
 

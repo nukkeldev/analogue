@@ -29,16 +29,26 @@ impl<'a> Node<'a> {
         }
     }
 
-    pub fn aliased<S: Into<CompactString>>(
-        ty: NodeType<'a>,
-        alias: S,
-        port_configuration: PortConfiguration<'a>,
-    ) -> Self {
-        Self {
-            ty,
-            alias: Some(alias.into()),
-            port_configuration,
-        }
+    // Builder Methods
+
+    pub fn with_alias<S: Into<CompactString>>(mut self, alias: S) -> Self {
+        self.alias = Some(alias.into());
+        self
+    }
+
+    pub fn without_alias(mut self) -> Self {
+        self.alias = None;
+        self
+    }
+
+    pub fn with_type(mut self, ty: NodeType<'a>) -> Self {
+        self.ty = ty;
+        self
+    }
+
+    pub fn with_port_configuration(mut self, pc: PortConfiguration<'a>) -> Self {
+        self.port_configuration = pc;
+        self
     }
 
     // Getters

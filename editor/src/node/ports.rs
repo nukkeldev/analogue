@@ -81,6 +81,26 @@ impl<'a> PortConfiguration<'a> {
         self
     }
 
+    pub fn with_primary_input(mut self, port: Port<'a>) -> Self {
+        self.primary_input = Some(port);
+        self
+    }
+
+    pub fn with_primary_output(mut self, port: Port<'a>) -> Self {
+        self.primary_output = Some(port);
+        self
+    }
+
+    pub fn with_input(mut self, port: Port<'a>) -> Self {
+        self.inputs.push(port);
+        self
+    }
+
+    pub fn with_output(mut self, port: Port<'a>) -> Self {
+        self.outputs.push(port);
+        self
+    }
+
     // States
 
     /// Returns `true` if there are no input or output ports.
@@ -160,6 +180,16 @@ impl<'a> PortConfiguration<'a> {
     /// Removes the primary output.
     pub fn remove_primary_output(&mut self) {
         self.primary_output = None;
+    }
+
+    /// Adds an input port.
+    pub fn add_input(&mut self, port: Port<'a>) {
+        self.inputs.push(port);
+    }
+
+    /// Adds an output port.
+    pub fn add_output(&mut self, port: Port<'a>) {
+        self.outputs.push(port);
     }
 
     // Util
